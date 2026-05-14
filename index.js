@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.13'
+const VERSION = '2.2.14'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -890,7 +890,24 @@ jQuery(async () => {
     })
 
     // 注册宏
-    if (USER.getContext().macros?.registry?.registerMacro) {
+    if (USER.getContext().registerMacro) {// 酒馆旧版本
+        USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
+        USER.getContext().registerMacro("tableData", () =>getMacroTablePrompt())
+        USER.getContext().registerMacro("GET_ALL_TABLES_JSON", () => {
+            try {
+                const jsonData = ext_exportAllTablesAsJson();
+                if (Object.keys(jsonData).length === 0) {
+                    return "{}"; // 如果没有数据，返回一个空的JSON对象
+                }
+                // 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
+                return JSON.stringify(jsonData);
+            } catch (error) {
+                console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
+                EDITOR.error("导出所有表格数据时出错。","",error);
+                return "{}"; // 出错时返回空JSON对象
+            }
+        });
+    } else {// 酒馆新版本
         USER.getContext().macros.registry.registerMacro('tablePrompt', {
             description: 'Returns table prompt',
             handler: () => getMacroPrompt(),
@@ -915,23 +932,6 @@ jQuery(async () => {
                     return "{}"; // 出错时返回空JSON对象
                 }
             },
-        });
-    } else {
-        USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
-        USER.getContext().registerMacro("tableData", () =>getMacroTablePrompt())
-        USER.getContext().registerMacro("GET_ALL_TABLES_JSON", () => {
-            try {
-                const jsonData = ext_exportAllTablesAsJson();
-                if (Object.keys(jsonData).length === 0) {
-                    return "{}"; // 如果没有数据，返回一个空的JSON对象
-                }
-                // 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
-                return JSON.stringify(jsonData);
-            } catch (error) {
-                console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
-                EDITOR.error("导出所有表格数据时出错。","",error);
-                return "{}"; // 出错时返回空JSON对象
-            }
         });
     }
 
