@@ -19,7 +19,7 @@ import { initExternalDataAdapter } from './external-data-adapter.js';
 
 console.log("______________________记忆插件：开始加载______________________")
 
-const VERSION = '2.2.12'
+const VERSION = '2.2.13'
 
 const editErrorInfo = {
     forgotCommentTag: false,
@@ -890,22 +890,50 @@ jQuery(async () => {
     })
 
     // 注册宏
-    USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
-    USER.getContext().registerMacro("tableData", () =>getMacroTablePrompt())
-    USER.getContext().registerMacro("GET_ALL_TABLES_JSON", () => {
-        try {
-            const jsonData = ext_exportAllTablesAsJson();
-            if (Object.keys(jsonData).length === 0) {
-                return "{}"; // 如果没有数据，返回一个空的JSON对象
+    if (USER.getContext().macros?.registry?.registerMacro) {
+        USER.getContext().macros.registry.registerMacro('tablePrompt', {
+            description: 'Returns table prompt',
+            handler: () => getMacroPrompt(),
+        });
+        USER.getContext().macros.registry.registerMacro('tableData', {
+            description: 'Returns table data',
+            handler: () => getMacroTablePrompt(),
+        });
+        USER.getContext().macros.registry.registerMacro('GET_ALL_TABLES_JSON', {
+            description: 'Returns table data as json',
+            handler: () => {
+                try {
+                    const jsonData = ext_exportAllTablesAsJson();
+                    if (Object.keys(jsonData).length === 0) {
+                        return "{}"; // 如果没有数据，返回一个空的JSON对象
+                    }
+                    // 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
+                    return JSON.stringify(jsonData);
+                } catch (error) {
+                    console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
+                    EDITOR.error("导出所有表格数据时出错。","",error);
+                    return "{}"; // 出错时返回空JSON对象
+                }
+            },
+        });
+    } else {
+        USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
+        USER.getContext().registerMacro("tableData", () =>getMacroTablePrompt())
+        USER.getContext().registerMacro("GET_ALL_TABLES_JSON", () => {
+            try {
+                const jsonData = ext_exportAllTablesAsJson();
+                if (Object.keys(jsonData).length === 0) {
+                    return "{}"; // 如果没有数据，返回一个空的JSON对象
+                }
+                // 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
+                return JSON.stringify(jsonData);
+            } catch (error) {
+                console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
+                EDITOR.error("导出所有表格数据时出错。","",error);
+                return "{}"; // 出错时返回空JSON对象
             }
-            // 返回JSON字符串，不带额外的格式化，以便在代码中直接使用
-            return JSON.stringify(jsonData);
-        } catch (error) {
-            console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
-            EDITOR.error("导出所有表格数据时出错。","",error);
-            return "{}"; // 出错时返回空JSON对象
-        }
-    });
+        });
+    }
 
     // 设置表格编辑按钮
     console.log("设置表格编辑按钮", applicationFunctionManager.doNavbarIconClick)
